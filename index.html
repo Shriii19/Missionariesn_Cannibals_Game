@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Missionaries & Cannibals Game</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+            margin: 0;
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #1a2a6c);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background: rgba(15, 23, 42, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Loading & Rules Overlay */
+        #loading-screen, #rules-screen {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 1;
+            pointer-events: all;
+            transition: opacity .5s ease-in-out;
+        }
+        
+        #loading-screen {
+            background: linear-gradient(135deg, #0f172a, #2563eb);
+            color: white;
+        }
+        
+        #rules-screen {
+            background: rgba(15, 23, 42, 0.98);
+            display: none;
+        }
+        
+        #loading-screen.hidden, #rules-screen.hidden {
+            opacity: 0 !important;
+            pointer-events: none;
+        }
+
+        .loading-content {
+            text-align: center;
+            animation: pulse 1.5s infinite;
+        }
+
+        .loading-icon {
+            font-size: 5rem;
+            margin-bottom: 1.5rem;
+            color: #60a5fa;
+        }
+
+        .loading-text {
+            font-size: 2rem;
+            font-weight: 600;
+        }
+
+        .rules-content {
+            text-align: center;
+            max-width: 700px;
+            padding: 2rem;
+        }
+
+        .rules-title {
+            font-size: 2.8rem;
+            color: #60a5fa;
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .rules-list {
+            text-align: left;
+            color: #e2e8f0;
+            line-height: 1.7;
+            margin-bottom: 2.5rem;
+            font-size: 1.2rem;
+            list-style: none;
+            padding: 0;
+        }
+
+        .rules-list li {
+            margin-bottom: 1.2rem;
+            padding-left: 2rem;
+            position: relative;
+        }
+
+        .rules-list li:before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: #60a5fa;
+            font-size: 1.5rem;
+        }
+
+        .highlight {
+            background: rgba(96, 165, 250, 0.2);
+            padding: 0.2rem 0.5rem;
+            border-radius: 5px;
+            font-weight: 600;
+        }
+
+        .game-title {
+            text-align: center;
+            padding: 1.5rem;
+            background: rgba(15, 23, 42, 0.8);
+            border-bottom: 2px solid #334155;
+        }
+
+        .game-title h2 {
+            font-size: 2.2rem;
+            color: #60a5fa;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            letter-spacing: 1px;
+        }
+
+        .lake-container {
+            position: relative;
+            height: 300px;
+            overflow: hidden;
+        }
+
+        .water {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, #2563eb, #3b82f6, #60a5fa);
+            opacity: 0.7;
+        }
+
+        .water-wave {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 20px;
+            background: url('data:image/svg+xml;utf8,<svg viewBox="0 0 100 20" xmlns="http://www.w3.org/2000/svg"><path d="M0 10 C20 15, 40 5, 60 10 S80 15, 100 10 L100 20 L0 20 Z" fill="%233b82f6"/></svg>');
+            background-size: 100% 100%;
+            animation: wave 15s infinite linear;
+        }
+
+        .lake {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 100%;
+            padding: 0 5%;
+        }
+
+        .shore {
+            min-width: 150px;
+            min-height: 120px;
+            background: linear-gradient(to bottom, #d97706, #b45309);
+            border-radius: 15px;
+            padding: 1.2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+            border: 3px solid #92400e;
+            z-index: 3;
+        }
+
+        .shore-label {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.8rem;
+            color: #fef3c7;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .occupants {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            min-height: 50px;
+        }
+
+        .occupant {
+            font-size: 2.5rem;
+        }
+
+        .boat-area {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 40%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.8s ease-in-out;
+        }
+
+        .boat {
+            width: 140px;
+            height: 70px;
+            background: linear-gradient(to bottom, #7c2d12, #9a3412);
+            border-radius: 50% 50% 10px 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+            position: relative;
+            z-index: 4;
+            transform-origin: center;
+            transition: transform 0.3s ease;
+        }
+
+        .boat:hover {
+            transform: scale(1.05);
+        }
+
+        .boat::before {
+            content: "";
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 30px;
+            background: #d97706;
+            border-radius: 2px;
+        }
+
+        .boat::after {
+            content: "";
+            position: absolute;
+            top: -35px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 30px;
+            height: 30px;
+            background: #fef3c7;
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+        }
+
+        .boat-occupants {
+            display: flex;
+            gap: 10px;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            padding: 1.5rem;
+            background: rgba(30, 41, 59, 0.8);
+            border-top: 2px solid #334155;
+        }
+
+        .btn {
+            cursor: pointer;
+            padding: 0.8rem 1.8rem;
+            font-weight: 600;
+            background: linear-gradient(to bottom, #2563eb, #1d4ed8);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(37, 99, 235, 0.4);
+        }
+
+        .btn:active:not(:disabled) {
+            transform: translateY(1px);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: linear-gradient(to bottom, #64748b, #475569);
+        }
+
+        .btn-move {
+            background: linear-gradient(to bottom, #16a34a, #15803d);
+        }
+
+        .btn-reset {
+            background: linear-gradient(to bottom, #dc2626, #b91c1c);
+        }
+
+        .status-area {
+            padding: 1.2rem;
+            text-align: center;
+            background: rgba(15, 23, 42, 0.7);
+            border-top: 1px solid #334155;
+        }
+
+        .status-msg {
+            font-weight: 600;
+            font-size: 1.3rem;
+            color: #f0f9ff;
+            min-height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 1rem;
+            color: #cbd5e1;
+            font-size: 1.1rem;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .game-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+
+        .game-overlay.show {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .result-content {
+            background: rgba(15, 23, 42, 0.95);
+            padding: 2.5rem;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 500px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            transform: scale(0.9);
+            animation: popIn 0.5s forwards;
+        }
+
+        .result-icon {
+            font-size: 4rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .result-title {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: #60a5fa;
+        }
+
+        .result-message {
+            font-size: 1.3rem;
+            margin-bottom: 2rem;
+            color: #e2e8f0;
+        }
+
+        @keyframes wave {
+            0% { background-position-x: 0; }
+            100% { background-position-x: 1000px; }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.9); opacity: 0; }
+            70% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+
+        .floating {
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @media (max-width: 768px) {
+            .lake {
+                padding: 0 10px;
+            }
+            
+            .shore {
+                min-width: 120px;
+                min-height: 100px;
+            }
+            
+            .btn {
+                padding: 0.7rem 1.2rem;
+                font-size: 0.95rem;
+            }
+            
+            .rules-title {
+                font-size: 2.2rem;
+            }
+            
+            .rules-list {
+                font-size: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .controls {
+                gap: 10px;
+            }
+            
+            .btn {
+                padding: 0.6rem 1rem;
+            }
+            
+            .stats {
+                flex-direction: column;
+                gap: 10px;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loading-screen">
+        <div class="loading-content">
+            <div class="loading-icon floating">
+                <i class="fas fa-ship"></i>
+            </div>
+            <div class="loading-text">Setting Sail...</div>
+        </div>
+    </div>
+
+    <!-- Rules Overlay -->
+    <div id="rules-screen">
+        <div class="rules-content">
+            <h1 class="rules-title">Missionaries & Cannibals</h1>
+            <ul class="rules-list">
+                <li>Your mission is to move all <span class="highlight">3 Missionaries</span> and <span class="highlight">3 Cannibals</span> from the right shore to the left shore</li>
+                <li>The boat can carry <span class="highlight">1 or 2 people</span> at a time</li>
+                <li>At least one person must be in the boat to row it across</li>
+                <li>Missionaries must <span class="highlight">never be outnumbered</span> by cannibals on any shore</li>
+                <li>If cannibals outnumber missionaries on any shore, the game is over!</li>
+            </ul>
+            <button id="rules-ok-btn" class="btn">
+                <i class="fas fa-play"></i> Start Game
+            </button>
+        </div>
+    </div>
+
+    <!-- Game Container -->
+    <div class="container">
+        <div class="game-title">
+            <h2>Missionaries & Cannibals Challenge</h2>
+        </div>
+        
+        <div class="lake-container">
+            <div class="water"></div>
+            <div class="water-wave"></div>
+            
+            <div class="lake">
+                <div class="shore" id="left-shore">
+                    <div class="shore-label">Left Shore</div>
+                    <div class="occupants" id="left-m"></div>
+                    <div class="occupants" id="left-c"></div>
+                </div>
+                
+                <div class="boat-area" id="boat-area">
+                    <div class="boat" id="boat">
+                        <div class="boat-occupants" id="boat-occupants"></div>
+                    </div>
+                </div>
+                
+                <div class="shore" id="right-shore">
+                    <div class="shore-label">Right Shore</div>
+                    <div class="occupants" id="right-m"></div>
+                    <div class="occupants" id="right-c"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button id="load-m-btn" class="btn">
+                <i class="fas fa-person"></i> Load Missionary
+            </button>
+            <button id="load-c-btn" class="btn">
+                <i class="fas fa-user-ninja"></i> Load Cannibal
+            </button>
+            <button id="unload-btn" class="btn">
+                <i class="fas fa-person-falling"></i> Unload All
+            </button>
+            <button id="move-boat-btn" class="btn btn-move">
+                <i class="fas fa-arrows-left-right"></i> Move Boat
+            </button>
+            <button id="reset-btn" class="btn btn-reset">
+                <i class="fas fa-rotate"></i> Reset Game
+            </button>
+        </div>
+        
+        <div class="status-area">
+            <div class="status-msg" id="status-msg">
+                <i class="fas fa-info-circle"></i> Welcome to the game!
+            </div>
+            <div class="stats">
+                <div class="stat-item">
+                    <i class="fas fa-ship"></i>
+                    <span>Boat trips: <span id="trip-count">0</span></span>
+                </div>
+                <div class="stat-item">
+                    <i class="fas fa-arrows-spin"></i>
+                    <span>Moves: <span id="move-count">0</span></span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="game-overlay" id="game-overlay">
+            <div class="result-content">
+                <div class="result-icon" id="result-icon"></div>
+                <h2 class="result-title" id="result-title"></h2>
+                <div class="result-message" id="result-message"></div>
+                <button id="play-again-btn" class="btn">
+                    <i class="fas fa-rotate"></i> Play Again
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Game constants
+    const MISSIONARY_EMOJI = '🧔';
+    const CANNIBAL_EMOJI = '👺';
+    
+    // ---- Phased game entry: loader → rules → game ----
+    function showGamePhases(onDone) {
+        const loading = document.getElementById('loading-screen');
+        const rules = document.getElementById('rules-screen');
+        const playBtn = document.getElementById('rules-ok-btn');
+
+        // 1. Show loading overlay for 2 seconds
+        loading.style.display = 'flex';
+        setTimeout(() => {
+            loading.classList.add('hidden');
+            setTimeout(() => { loading.style.display = 'none'; }, 500);
+            // 2. Show rules/tutorial overlay
+            rules.style.display = 'flex';
+            setTimeout(() => rules.classList.remove('hidden'), 55);
+        }, 2000);
+
+        // 3. On "Play!" button click, hide rules and start game
+        playBtn.addEventListener('click', () => {
+            rules.classList.add('hidden');
+            setTimeout(() => { rules.style.display = 'none'; onDone(); }, 500);
+        });
+    }
+
+    // ---- Missionaries & Cannibals Game Logic/UI ----
+    class MissionariesCannibalsGame {
+        constructor() {
+            this.tripCount = 0;
+            this.moveCount = 0;
+            
+            // Cache DOM
+            this.lm = document.getElementById('left-m');
+            this.lc = document.getElementById('left-c');
+            this.rm = document.getElementById('right-m');
+            this.rc = document.getElementById('right-c');
+            this.boatEl = document.getElementById('boat');
+            this.boatArea = document.getElementById('boat-area');
+            this.boatOcc = document.getElementById('boat-occupants');
+            this.statusMsg = document.getElementById('status-msg');
+            this.loadMBtn = document.getElementById('load-m-btn');
+            this.loadCBtn = document.getElementById('load-c-btn');
+            this.unloadBtn = document.getElementById('unload-btn');
+            this.moveBoatBtn = document.getElementById('move-boat-btn');
+            this.resetBtn = document.getElementById('reset-btn');
+            this.tripCountEl = document.getElementById('trip-count');
+            this.moveCountEl = document.getElementById('move-count');
+            this.gameOverlay = document.getElementById('game-overlay');
+            this.resultIcon = document.getElementById('result-icon');
+            this.resultTitle = document.getElementById('result-title');
+            this.resultMessage = document.getElementById('result-message');
+            this.playAgainBtn = document.getElementById('play-again-btn');
+            
+            // Listeners
+            this.loadMBtn.onclick = () => this.load('m');
+            this.loadCBtn.onclick = () => this.load('c');
+            this.unloadBtn.onclick = () => this.unload();
+            this.moveBoatBtn.onclick = () => this.moveBoat();
+            this.resetBtn.onclick = () => this.init(true);
+            this.playAgainBtn.onclick = () => this.init(true);
+            
+            this.init();
+        }
+
+        init(showMsg=false) {
+            this.state = {
+                left: { m: 0, c: 0 },
+                right: { m: 3, c: 3 },
+                boat: 1, // 0:left, 1:right
+                occupants: [],
+                gameOver: false, 
+                win: false
+            };
+            
+            this.tripCount = 0;
+            this.moveCount = 0;
+            this.updateStats();
+            
+            if (showMsg) this.showStatus("Game reset!", "fas fa-sync-alt");
+            this.gameOverlay.classList.remove('show');
+            this.render();
+        }
+        
+        updateStats() {
+            this.tripCountEl.textContent = this.tripCount;
+            this.moveCountEl.textContent = this.moveCount;
+        }
+
+        render() {
+            // Left & right
+            this.lm.innerHTML = MISSIONARY_EMOJI.repeat(this.state.left.m);
+            this.lc.innerHTML = CANNIBAL_EMOJI.repeat(this.state.left.c);
+            this.rm.innerHTML = MISSIONARY_EMOJI.repeat(this.state.right.m);
+            this.rc.innerHTML = CANNIBAL_EMOJI.repeat(this.state.right.c);
+            
+            // Boat occupants
+            this.boatOcc.innerHTML = this.state.occupants.map(x => 
+                x === 'm' ? MISSIONARY_EMOJI : CANNIBAL_EMOJI
+            ).join("");
+            
+            // Boat position
+            this.boatArea.style.left = this.state.boat === 0 ? '20%' : '80%';
+            
+            // Status
+            if (this.state.win) {
+                this.showResult("🎉", "Victory!", "All safe! You successfully transported everyone!");
+            } else if (this.state.gameOver) {
+                this.showResult("💀", "Game Over!", "Missionaries have been outnumbered!");
+            } else {
+                this.updateStatusMessage();
+            }
+            
+            // Disable buttons if boat full/empty etc
+            this.loadMBtn.disabled = (this.state.occupants.length >= 2) || 
+                (this.getCurrentShore()[this.state.boat].m <= 0) || 
+                this.state.gameOver || 
+                this.state.win;
+                
+            this.loadCBtn.disabled = (this.state.occupants.length >= 2) || 
+                (this.getCurrentShore()[this.state.boat].c <= 0) || 
+                this.state.gameOver || 
+                this.state.win;
+                
+            this.unloadBtn.disabled = (this.state.occupants.length === 0) || 
+                this.state.gameOver || 
+                this.state.win;
+                
+            this.moveBoatBtn.disabled = (this.state.occupants.length === 0) || 
+                this.state.gameOver || 
+                this.state.win;
+        }
+        
+        updateStatusMessage() {
+            const shore = this.state.boat === 0 ? "left" : "right";
+            let msg = "";
+            
+            if (this.state.occupants.length > 0) {
+                const occupants = this.state.occupants.map(x => 
+                    x === 'm' ? "Missionary" : "Cannibal"
+                ).join(" and ");
+                
+                msg = `<i class="fas fa-ship"></i> Boat loaded with ${occupants} at ${shore} shore.`;
+            } else {
+                msg = `<i class="fas fa-anchor"></i> Boat is empty at ${shore} shore.`;
+            }
+            
+            this.statusMsg.innerHTML = msg;
+        }
+        
+        showStatus(msg, icon) {
+            this.statusMsg.innerHTML = `<i class="fas ${icon}"></i> ${msg}`;
+        }
+        
+        showResult(icon, title, msg) {
+            this.resultIcon.textContent = icon;
+            this.resultTitle.textContent = title;
+            this.resultMessage.textContent = msg;
+            this.gameOverlay.classList.add('show');
+        }
+
+        getCurrentShore() {
+            return [this.state.left, this.state.right];
+        }
+
+        load(type) {
+            if (this.state.occupants.length >= 2) return;
+            
+            const shores = this.getCurrentShore();
+            const currentShore = shores[this.state.boat];
+            
+            if (currentShore[type] > 0) {
+                currentShore[type]--;
+                this.state.occupants.push(type);
+                this.moveCount++;
+                this.updateStats();
+                this.render();
+            }
+        }
+        
+        unload() {
+            if (this.state.occupants.length === 0) return;
+            
+            const shores = this.getCurrentShore();
+            const currentShore = shores[this.state.boat];
+            
+            for (let o of this.state.occupants) {
+                currentShore[o]++;
+            }
+            
+            this.state.occupants = [];
+            this.moveCount++;
+            this.updateStats();
+            this.render();
+        }
+        
+        moveBoat() {
+            if (this.state.occupants.length === 0) return;
+            
+            // Animate boat movement
+            this.boatArea.style.transition = 'all 1.2s ease-in-out';
+            this.state.boat = 1 - this.state.boat;
+            
+            setTimeout(() => {
+                this.unload();
+                this.tripCount++;
+                this.updateStats();
+                this.checkGameState();
+                this.render();
+                this.boatArea.style.transition = '';
+            }, 1200);
+            
+            this.render();
+        }
+        
+        checkGameState() {
+            const L = this.state.left;
+            const R = this.state.right;
+            
+            // Check if cannibals outnumber missionaries on any shore
+            const leftProblem = L.m > 0 && L.c > L.m;
+            const rightProblem = R.m > 0 && R.c > R.m;
+            
+            if (leftProblem || rightProblem) {
+                this.state.gameOver = true;
+            } 
+            // Check win condition: all on left shore
+            else if (L.m === 3 && L.c === 3) {
+                this.state.win = true;
+            }
+        }
+    }
+
+    // ---- Entry Point ----
+    document.addEventListener('DOMContentLoaded', () => {
+        showGamePhases(() => {
+            const game = new MissionariesCannibalsGame();
+            window.game = game;
+        });
+    });
+    </script>
+</body>
+</html>
